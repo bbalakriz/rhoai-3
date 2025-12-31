@@ -6,6 +6,7 @@ To enable vLLM workloads land on the right GPU node, following three things have
 - Add the toleration and taints to the hardware profiles of RHOAI and use it while creating model serving deployments. This would result in a InferenceService created with the right taints and tolerations and the runtimeServiceClass in it as shown below
 
 ### Adding taints to the MachineSet
+Tip: Use the specific subnet Id from the AWS if there are any issues with Machine creation due to subnets.
 ```
 apiVersion: machine.openshift.io/v1beta1
 kind: MachineSet
@@ -90,11 +91,11 @@ spec:
           ami:
             id: ami-0bc8dda494f111572
           subnet:
-            id: subnet-05a9a72c36b6099c5
+            id: subnet-05a9a72c36b6099c5 ### Explicit mapping to specific subnet identified from AWS
           apiVersion: machine.openshift.io/v1beta1
           iamInstanceProfile:
             id: cluster-w9z67-62n7r-worker-profile
-      taints:
+      taints: ### Addition of taints
         - effect: NoSchedule
           key: sreips-demo
           value: node-test
@@ -188,7 +189,7 @@ spec:
   daemonsets:
     rollingUpdate:
       maxUnavailable: '1'
-    tolerations:
+    tolerations: ###addition of tolerations
       - effect: NoSchedule
         key: sreips-demo
         operator: Equal
@@ -241,9 +242,9 @@ spec:
       resourceType: Accelerator
   scheduling:
     node:
-      nodeSelector:
+      nodeSelector: ### addition of node selector
         node.kubernetes.io/instance-type: g6.4xlarge
-      tolerations:
+      tolerations: ### addition of tolerations
         - effect: NoSchedule
           key: sreips-demo
           operator: Equal
