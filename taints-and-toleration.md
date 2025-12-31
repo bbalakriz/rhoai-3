@@ -3,7 +3,7 @@
 To enable vLLM workloads land on the right GPU node, following three things have to be done. 
 - Adding taints to `MachineSet`
 - Include toleration to the `ClusterPolicy` CRD of NVIDIA GPU operator
-- Add the toleration and taints to the hardware profiles of RHOAI and use it while creating model serving deployments
+- Add the toleration and taints to the hardware profiles of RHOAI and use it while creating model serving deployments. This would result in a InferenceService created with the right taints and tolerations and the runtimeServiceClass in it as shown below
 
 ### Adding taints to the MachineSet
 ```
@@ -249,4 +249,62 @@ spec:
           operator: Equal
           value: node-test
     type: Node
+```
+
+### InferenceService that's based on the defined hardware profile
+```
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  annotations:
+    serving.kserve.io/stop: 'false'
+    security.opendatahub.io/enable-auth: 'false'
+    opendatahub.io/hardware-profile-resource-version: '170327'
+    openshift.io/description: ''
+    openshift.io/display-name: RedHatAI/Llama-3.1-8B-Instruct
+    serving.kserve.io/deploymentMode: RawDeployment
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+    opendatahub.io/hardware-profile-name: nvidia-gpu
+    opendatahub.io/connections: test
+    opendatahub.io/model-type: generative
+  name: redhataillama-31-8b-instruct
+  namespace: rhoai-model-registries
+  finalizers:
+    - odh.inferenceservice.finalizers
+    - inferenceservice.finalizers
+  labels:
+    networking.kserve.io/visibility: exposed
+    opendatahub.io/dashboard: 'true'
+    opendatahub.io/genai-asset: 'true'
+spec:
+  predictor:
+    automountServiceAccountToken: false
+    maxReplicas: 1
+    minReplicas: 1
+    model:
+      args:
+        - '--max-model-len=4096'
+        - '--enable-auto-tool-choice'
+        - '--tool-call-parser=llama3_json'
+      modelFormat:
+        name: vLLM
+      name: ''
+      resources:
+        limits:
+          cpu: '2'
+          memory: 16Gi
+          nvidia.com/gpu: '1'
+        requests:
+          cpu: '2'
+          memory: 16Gi
+          nvidia.com/gpu: '1'
+      runtime: redhataillama-31-8b-instruct
+      storageUri: 'oci://registry.redhat.io/rhelai1/modelcar-llama-3-1-8b-instruct-fp8-dynamic:1.5'
+    nodeSelector:
+      node.kubernetes.io/instance-type: g6.4xlarge
+    tolerations:
+      - effect: NoSchedule
+        key: sreips-demo
+        operator: Equal
+        value: node-test
 ```
